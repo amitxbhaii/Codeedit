@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>सिंपल कोड एडिटर · 100% काम करेगा</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0d1117;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1300px;
+      height: 90vh;
+      background: #161b22;
+      border-radius: 16px;
+      border: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* टूलबार */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #21262d;
+      border-bottom: 1px solid #30363d;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .left, .right {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    select, button {
+      background: #2d333b;
+      color: #e6edf3;
+      border: 1px solid #444c56;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    select {
+      min-width: 140px;
+    }
+
+    select:hover, button:hover {
+      background: #3d444e;
+      border-color: #636e7b;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .active {
+      background: #1f6feb;
+      border-color: #388bfd;
+    }
+
+    .preview-btn {
+      background: #1f6feb;
+      border-color: #388bfd;
+    }
+
+    .preview-btn:hover {
+      background: #388bfd;
+    }
+
+    /* एडिटर एरिया */
+    .editor-area {
+      flex: 1;
+      background: #0d1117;
+      position: relative;
+      min-height: 0;
+    }
+
+    #editor {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* स्टेटस बार */
+    .status-bar {
+      padding: 8px 20px;
+      background: #21262d;
+      border-top: 1px solid #30363d;
+      color: #8b949e;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .lang-badge {
+      background: #1f6feb30;
+      color: #58a6ff;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* प्रीव्यू मॉडल */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: 0.2s;
+    }
+
+    .modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      width: 90%;
+      max-width: 1000px;
+      height: 80vh;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      background: #f6f8fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #d0d7de;
+    }
+
+    .modal-header h3 {
+      color: #1f2328;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #57606a;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover {
+      background: #d0d7de;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- टूलबार -->
+  <div class="toolbar">
+    <div class="left">
+      <select id="language">
+        <option value="html" selected>HTML</option>
+        <option value="php">PHP</option>
+        <option value="javascript">JavaScript</option>
+        <option value="python">Python</option>
+        <option value="java">Java</option>
+        <option value="cpp">C++</option>
+        <option value="css">CSS</option>
+        <option value="sql">SQL</option>
+        <option value="json">JSON</option>
+      </select>
+      
+      <button id="wordWrap">📜 रैप</button>
+    </div>
+    
+    <div class="right">
+      <button id="copy">📋 कॉपी</button>
+      <button id="clear">🗑️ क्लियर</button>
+      <button id="preview" class="preview-btn">👁️ प्रीव्यू</button>
+    </div>
+  </div>
+
+  <!-- एडिटर -->
+  <div class="editor-area">
+    <div id="editor"></div>
+  </div>
+
+  <!-- स्टेटस बार -->
+  <div class="status-bar">
+    <span>✅ एडिटर एक्टिव है - टाइप कर सकते हैं</span>
+    <span class="lang-badge" id="langDisplay">HTML</span>
+  </div>
+</div>
+
+<!-- प्रीव्यू मॉडल -->
+<div class="modal" id="previewModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔍 प्रीव्यू</h3>
+      <button class="close-btn" id="closePreview">×</button>
+    </div>
+    <iframe id="previewFrame"></iframe>
+  </div>
+</div>
+
+<!-- Monaco Editor CDN - सीधा लोड -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<script>
+  // सीधा और सिंपल कोड
+  (function() {
+    // वर्कर सेटअप
+    window.MonacoEnvironment = {
+      getWorkerUrl: function(workerId, label) {
+        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+          self.MonacoEnvironment = {
+            baseUrl: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/'
+          };
+          importScripts('https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/base/worker/workerMain.js');
+        `)}`;
+      }
+    };
+
+    // डिफॉल्ट HTML कोड
+    const defaultCode = `<!DOCTYPE html>
+<html>
+<head>
+  <title>मेरा पेज</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    h1 { color: #333; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>नमस्ते दुनिया! 👋</h1>
+    <p>यह एक लाइव HTML प्रीव्यू है।</p>
+    <button onclick="alert('बटन दबाया गया!')">क्लिक करें</button>
+  </div>
+</body>
+</html>`;
+
+    let editor;
+    let wrapActive = false;
+
+    // requireJS से Monaco लोड करें
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+
+    require(['vs/editor/editor.main'], function() {
+      // एडिटर बनाएं - बिल्कुल सिंपल
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: defaultCode,
+        language: 'html',
+        theme: 'vs-dark',
+        fontSize: 14,
+        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+        minimap: { enabled: false },
+        automaticLayout: true,
+        wordWrap: 'off',
+        lineNumbers: 'on',
+        scrollBeyondLastLine: false,
+        renderWhitespace: 'none',
+        tabSize: 2
+      });
+
+      // एडिटर को फोकस करें - टाइप करने के लिए
+      setTimeout(() => {
+        editor.focus();
+      }, 100);
+
+      // DOM एलिमेंट्स
+      const langSelect = document.getElementById('language');
+      const langDisplay = document.getElementById('langDisplay');
+      const wordWrapBtn = document.getElementById('wordWrap');
+      const copyBtn = document.getElementById('copy');
+      const clearBtn = document.getElementById('clear');
+      const previewBtn = document.getElementById('preview');
+      const modal = document.getElementById('previewModal');
+      const previewFrame = document.getElementById('previewFrame');
+      const closePreview = document.getElementById('closePreview');
+
+      // लैंग्वेज बदलें
+      langSelect.addEventListener('change', function() {
+        const lang = this.value;
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        langDisplay.textContent = lang.toUpperCase();
+      });
+
+      // वर्ड रैप टॉगल
+      wordWrapBtn.addEventListener('click', function() {
+        wrapActive = !wrapActive;
+        editor.updateOptions({ wordWrap: wrapActive ? 'on' : 'off' });
+        
+        if (wrapActive) {
+          this.classList.add('active');
+          this.textContent = '📜 रैप (चालू)';
+        } else {
+          this.classList.remove('active');
+          this.textContent = '📜 रैप';
+        }
+      });
+
+      // कॉपी बटन
+      copyBtn.addEventListener('click', function() {
+        const code = editor.getValue();
+        navigator.clipboard.writeText(code).then(() => {
+          const original = this.textContent;
+          this.textContent = '✅ कॉपी!';
+          setTimeout(() => {
+            this.textContent = original;
+          }, 1500);
+        }).catch(() => {
+          // फॉलबैक
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          
+          const original = this.textContent;
+          this.textContent = '✅ कॉपी!';
+          setTimeout(() => {
+            this.textContent = original;
+          }, 1500);
+        });
+      });
+
+      // क्लियर बटन
+      clearBtn.addEventListener('click', function() {
+        editor.setValue('');
+        const original = this.textContent;
+        this.textContent = '✅ साफ!';
+        setTimeout(() => {
+          this.textContent = original;
+        }, 1500);
+      });
+
+      // प्रीव्यू बटन
+      previewBtn.addEventListener('click', function() {
+        const code = editor.getValue();
+        const lang = langSelect.value;
+        
+        if (lang === 'html') {
+          previewFrame.srcdoc = code;
+        } else {
+          // एस्केप कोड
+          const escapedCode = code.replace(/&/g, '&amp;')
+                                 .replace(/</g, '&lt;')
+                                 .replace(/>/g, '&gt;')
+                                 .replace(/"/g, '&quot;')
+                                 .replace(/'/g, '&#039;');
+          
+          previewFrame.srcdoc = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { 
+                  font-family: system-ui, sans-serif; 
+                  padding: 30px; 
+                  background: #f0f4fa;
+                  display: flex;
+                  justify-content: center;
+                  margin: 0;
+                }
+                .container {
+                  max-width: 800px;
+                  width: 100%;
+                }
+                .header {
+                  background: #1f6feb;
+                  color: white;
+                  padding: 20px;
+                  border-radius: 10px 10px 0 0;
+                }
+                .content {
+                  background: white;
+                  padding: 30px;
+                  border-radius: 0 0 10px 10px;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                }
+                pre {
+                  background: #1a2129;
+                  color: #e6edf3;
+                  padding: 20px;
+                  border-radius: 8px;
+                  overflow: auto;
+                  font-size: 13px;
+                  line-height: 1.5;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h2>🔍 प्रीव्यू (${lang.toUpperCase()})</h2>
+                </div>
+                <div class="content">
+                  <p>यह लैंग्वेज लाइव प्रीव्यू सपोर्ट नहीं करती।</p>
+                  <pre>${escapedCode}</pre>
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
+        }
+        
+        modal.classList.add('show');
+      });
+
+      // प्रीव्यू बंद करें
+      closePreview.addEventListener('click', function() {
+        modal.classList.remove('show');
+        previewFrame.srcdoc = '';
+      });
+
+      // मॉडल के बाहर क्लिक करें
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          modal.classList.remove('show');
+          previewFrame.srcdoc = '';
+        }
+      });
+
+      // Esc की
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+          modal.classList.remove('show');
+          previewFrame.srcdoc = '';
+        }
+      });
+
+      // एडिटर में क्लिक करने पर फोकस
+      document.getElementById('editor').addEventListener('click', function() {
+        editor.focus();
+      });
+    });
+  })();
+</script>
+</body>
+</html>
